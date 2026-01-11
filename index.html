@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Karachi GIS Dashboard design by MB</title>
+<title>Karachi GIS Dashboard by MB (MASOOD BARI)</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -27,14 +27,12 @@ html, body { height:100%; margin:0; }
 
 <h4 class="text-center">Locate</h4>
 
-<!-- OSM -->
 <input id="txtOSM" class="form-control" placeholder="Enter OSM ID">
 <br>
 <button id="btnOSM" class="btn btn-primary btn-block">Find Road</button>
 <hr>
 
-<!-- SPEED -->
-<b>Karachi Roads Maximum Speed Filter:</b>
+<b>Maximum Speed</b>
 <select id="selSpeed" class="form-control">
   <option value="">Select Speed</option>
   <option value="ALL">Remove Filter</option>
@@ -50,8 +48,7 @@ html, body { height:100%; margin:0; }
 <button id="btnSpeed" class="btn btn-warning btn-block">Filter</button>
 <hr>
 
-<!-- CLASS -->
-<b>Road Classification:</b>
+<b>Road Class</b>
 <select id="selClass" class="form-control">
   <option value="">Select Class</option>
   <option value="ALL">Remove Filter</option>
@@ -65,17 +62,15 @@ html, body { height:100%; margin:0; }
 <button id="btnClass" class="btn btn-success btn-block">Filter</button>
 <hr>
 
-<!-- WATER -->
-<b>Pakistan River Feature Name</b>
+<b>Water Name</b>
 <select id="selWater" class="form-control">
-  <option value="">Select Water Name</option>
+  <option value="">Select Water</option>
   <option value="ALL">Remove Filter</option>
 </select>
 <br>
 <button id="btnWater" class="btn btn-info btn-block">Find</button>
 <hr>
 
-<!-- DISTRICT -->
 <b>Pakistan District</b>
 <select id="selDistrict" class="form-control">
   <option value="">Select District</option>
@@ -97,10 +92,7 @@ html, body { height:100%; margin:0; }
 <script>
 // ================= MAP =================
 var map = L.map('map').setView([24.86, 67.01], 11);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-  maxZoom:19
-}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
 
 // ================= GLOBAL =================
 var roadLayer, waterLayer, districtLayer;
@@ -109,14 +101,6 @@ var waterData, districtData;
 var DISTRICT_FIELD=null;
 
 // ================= HELPERS =================
-function popupContent(f){
-  let h="";
-  for(let k in f.properties){
-    h+=`<b>${k}</b>: ${f.properties[k]}<br>`;
-  }
-  return h;
-}
-
 function resetLayers(){
   if(roadLayer) map.removeLayer(roadLayer);
   if(waterLayer) map.removeLayer(waterLayer);
@@ -125,17 +109,13 @@ function resetLayers(){
 
 function showAllRoads(){
   resetLayers();
-  roadLayer=L.geoJSON(roadData,{
-    style:{color:"#3366cc",weight:2},
-    onEachFeature:(f,l)=>l.bindPopup(popupContent(f))
-  }).addTo(map);
+  roadLayer=L.geoJSON(roadData,{style:{color:"#3366cc",weight:2}}).addTo(map);
 }
 
-// 🔴 FIXED SPEED PARSER (MULTI-VALUE)
-function speedMatch(val, target){
+function speedMatch(val,target){
   if(!val) return false;
-  let nums = val.toString().match(/\d+/g);
-  return nums ? nums.includes(target) : false;
+  let nums=val.toString().match(/\d+/g);
+  return nums?nums.includes(target):false;
 }
 
 // ================= LOAD ROADS =================
@@ -146,87 +126,61 @@ function loadRoads(url){
   });
 }
 
-loadRoads("data/data/khi_east.geojson");
-loadRoads("data/data/khi_west.geojson");
-loadRoads("data/data/khi_south.geojson");
-loadRoads("data/data/khi_central.geojson");
+loadRoads("khi_east.geojson");
+loadRoads("khi_west.geojson");
+loadRoads("khi_south.geojson");
+loadRoads("khi_central.geojson");
 
 // ================= WATER =================
-$.getJSON("data/data/khi_water.geojson",function(d){
+$.getJSON("khi_water.geojson",function(d){
   waterData=d;
-
   [...new Set(d.features.map(f=>f.properties.name).filter(Boolean))]
     .forEach(n=>$("#selWater").append(`<option>${n}</option>`));
-
-  waterLayer=L.geoJSON(d,{
-    style:{color:"blue"}
-  }).addTo(map);
 });
 
 // ================= DISTRICTS =================
-$.getJSON("data/data/Pak_Admin.geojson",function(d){
+$.getJSON("Pak_Admin.geojson",function(d){
   districtData=d;
   let p=Object.keys(d.features[0].properties);
-  DISTRICT_FIELD=p.find(x=>x.toLowerCase().includes("dist")||x.toLowerCase().includes("name_3")||x.toLowerCase().includes("adm3"));
-
+  DISTRICT_FIELD=p.find(x=>x.toLowerCase().includes("dist")||x.toLowerCase().includes("name"));
   [...new Set(d.features.map(f=>f.properties[DISTRICT_FIELD]).filter(Boolean))]
-    .sort()
-    .forEach(n=>$("#selDistrict").append(`<option>${n}</option>`));
+    .sort().forEach(n=>$("#selDistrict").append(`<option>${n}</option>`));
 });
 
-// ================= FILTER EVENTS =================
-
-// SPEED
+// ================= FILTERS =================
 $("#btnSpeed").click(()=>{
   let s=$("#selSpeed").val();
   if(!s) return;
-  if(s==="ALL"){ showAllRoads(); return; }
-
+  if(s==="ALL"){showAllRoads();return;}
   resetLayers();
-  roadLayer=L.geoJSON(roadData,{
-    filter:f=>speedMatch(f.properties.maxspeed,s),
-    style:{color:"orange",weight:3}
-  }).addTo(map);
+  roadLayer=L.geoJSON(roadData,{filter:f=>speedMatch(f.properties.maxspeed,s),style:{color:"orange"}}).addTo(map);
 });
 
-// CLASS
 $("#btnClass").click(()=>{
   let c=$("#selClass").val();
   if(!c) return;
-  if(c==="ALL"){ showAllRoads(); return; }
-
+  if(c==="ALL"){showAllRoads();return;}
   resetLayers();
-  roadLayer=L.geoJSON(roadData,{
-    filter:f=>f.properties.fclass===c,
-    style:{color:"green",weight:3}
-  }).addTo(map);
+  roadLayer=L.geoJSON(roadData,{filter:f=>f.properties.fclass===c,style:{color:"green"}}).addTo(map);
 });
 
-// WATER
 $("#btnWater").click(()=>{
   let w=$("#selWater").val();
   if(!w) return;
-  if(w==="ALL"){ showAllRoads(); return; }
-
+  if(w==="ALL"){showAllRoads();return;}
   resetLayers();
-  waterLayer=L.geoJSON(waterData,{
-    filter:f=>f.properties.name===w,
-    style:{color:"blue",weight:3}
-  }).addTo(map);
+  waterLayer=L.geoJSON(waterData,{filter:f=>f.properties.name===w,style:{color:"blue"}}).addTo(map);
 });
 
-// DISTRICT
 $("#btnDistrict").click(()=>{
   let d=$("#selDistrict").val();
   if(!d) return;
-  if(d==="ALL"){ showAllRoads(); return; }
-
+  if(d==="ALL"){showAllRoads();return;}
   resetLayers();
   districtLayer=L.geoJSON(districtData,{
     filter:f=>f.properties[DISTRICT_FIELD]===d,
-    style:{color:"red",weight:3,fillOpacity:0.25}
+    style:{color:"red",fillOpacity:0.25}
   }).addTo(map);
-
   map.fitBounds(districtLayer.getBounds());
 });
 </script>
