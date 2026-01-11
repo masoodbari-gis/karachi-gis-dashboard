@@ -139,13 +139,37 @@ $.getJSON("khi_water.geojson",function(d){
 });
 
 // ================= DISTRICTS =================
-$.getJSON("Pak_Admin.geojson",function(d){
-  districtData=d;
-  let p=Object.keys(d.features[0].properties);
-  DISTRICT_FIELD=p.find(x=>x.toLowerCase().includes("dist")||x.toLowerCase().includes("name"));
-  [...new Set(d.features.map(f=>f.properties[DISTRICT_FIELD]).filter(Boolean))]
-    .sort().forEach(n=>$("#selDistrict").append(`<option>${n}</option>`));
+$.getJSON("Pak_Admin.geojson", function (data) {
+  districtData = data;
+
+  const districtSet = new Set();
+
+  data.features.forEach(f => {
+    if (f.properties && f.properties.NAME_3) {
+      districtSet.add(f.properties.NAME_3.trim());
+    }
+  });
+
+  // Clear dropdown first
+  $("#selDistrict").html('<option value="">Select District</option>');
+
+  // Add sorted districts
+  [...districtSet].sort().forEach(d => {
+    $("#selDistrict").append(
+      `<option value="${d}">${d}</option>`
+    );
+  });
+
+  // Optional: show full boundary
+  districtLayer = L.geoJSON(data, {
+    style: {
+      color: "#800026",
+      weight: 1,
+      fillOpacity: 0.05
+    }
+  }).addTo(map);
 });
+
 
 // ================= FILTERS =================
 $("#btnSpeed").click(()=>{
@@ -187,3 +211,4 @@ $("#btnDistrict").click(()=>{
 
 </body>
 </html>
+
